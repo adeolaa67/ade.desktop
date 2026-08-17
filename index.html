@@ -241,24 +241,19 @@
   }
   .gallery-hero:hover img{filter:drop-shadow(0 6px 10px rgba(0,0,0,0.55)) brightness(1.08);}
 
-  .pin{
-    position:absolute;transform:translate(-50%,-50%);
-    width:26px;height:26px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background:rgba(10,7,4,0.55);border:1.5px solid #E8C878;
-    box-shadow:0 2px 6px rgba(0,0,0,0.5);cursor:pointer;
+  .gallery-hero.full img{mix-blend-mode:normal;border-radius:3px;box-shadow:0 8px 18px rgba(0,0,0,0.55);}
+  .gallery-hero::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.6) 48%, transparent 66%);
+    mix-blend-mode:screen;transform:translateX(-130%);
+    animation:shimmer 6s ease-in-out infinite;
+    animation-delay:var(--shimmer-delay, 0s);
   }
-  .pin::before{content:"";width:7px;height:7px;border-radius:50%;background:#E8C878;}
-  .pin:hover, .pin:focus-visible{background:rgba(10,7,4,0.82);}
-  .pin.owned::before{background:#6FBE8F;}
-  .pin-label{
-    position:absolute;bottom:130%;left:50%;transform:translateX(-50%);
-    white-space:nowrap;padding:0.3rem 0.6rem;border-radius:6px;
-    background:rgba(10,7,4,0.92);color:#F3EADA;font-size:0.68rem;font-weight:700;
-    opacity:0;pointer-events:none;transition:opacity .15s ease;
-    box-shadow:0 4px 10px rgba(0,0,0,0.4);
+  @keyframes shimmer{
+    0%, 78%, 100%{transform:translateX(-130%);opacity:0;}
+    84%{opacity:0.9;}
+    92%{transform:translateX(130%);opacity:0;}
   }
-  .pin:hover .pin-label, .pin:focus-visible .pin-label{opacity:1;}
 
   .owned-ribbon{
     position:absolute;top:6px;right:-6px;background:var(--brass);color:var(--wood-edge);
@@ -355,6 +350,7 @@
     .pick-arm{animation:none;}
     .gauge-fill{transition:none;}
     .gallery-hero{transition:none;}
+    .gallery-hero::after{animation:none;}
     .lightbox-scrim, .lightbox-card{transition:none;}
   }
 
@@ -587,59 +583,46 @@
 
   var owned = {};
 
-  /* ---------------- build gallery photo overlay ---------------- */
-  /* The room is the real reference photograph, untouched. One piece is
-     composited onto the bust; the rest are marked with gold pins placed
-     at their approximate spot in the photo. Either way, clicking opens
-     the same lightbox with the real piece's name, meaning, and price. */
-  var HERO_ID = 'adebola';
-  var HERO_RECT = { left: 3, top: 13, width: 29, rotate: -6 };
-  var PIN_MAP = {
-    adeyemi:   { x: 24, y: 62 },
-    adunni:    { x: 33, y: 65 },
-    adeyola:   { x: 47, y: 52 },
-    olajide:   { x: 58, y: 57 },
-    adedamola: { x: 68, y: 60 },
-    olawumi:   { x: 62, y: 70 },
-    adesewa:   { x: 28, y: 75 },
-    ayodele:   { x: 20, y: 87 }
+  /* ---------------- bring the room to life ---------------- */
+  /* The room is the real reference photograph, untouched. Every piece is
+     composited directly onto the spot it echoes in the photo — the bust,
+     each crown, the drop pendant, the rings and earring rows — sized and
+     rotated to sit where that jewellery already is. Clicking any piece
+     opens the lightbox with its real name, meaning, and price. */
+  var RECTS = {
+    adebola:   { left: 3,  top: 13, width: 29, rotate: -6 },  // the bust
+    adeyemi:   { left: 9,  top: 49, width: 24, rotate: -5 },  // crown, front-left
+    adunni:    { left: 25, top: 55, width: 17, rotate: 4 },   // crown, small front
+    adeyola:   { left: 36, top: 40, width: 22, rotate: 1 },   // tallest center crown
+    olajide:   { left: 49, top: 44, width: 19, rotate: -3 },  // crown, right of center
+    adedamola: { left: 57, top: 47, width: 20, rotate: 5 },   // rightmost crown
+    olawumi:   { left: 50, top: 56, width: 19, rotate: -2 },  // teardrop pendant
+    adesewa:   { left: 16, top: 68, width: 24, rotate: 3 },   // ring row
+    ayodele:   { left: 10, top: 78, width: 20, rotate: -4 }   // earring row
   };
 
   var galleryRoom = document.getElementById('galleryRoom');
   var byId = {};
   CATALOG.forEach(function(i){ byId[i.id] = i; });
 
-  var heroItem = byId[HERO_ID];
-  var hero = document.createElement('div');
-  hero.className = 'gallery-hero';
-  hero.innerHTML = '<img src="' + heroItem.img + '" alt="' + heroItem.name + '">';
-  hero.style.left = HERO_RECT.left + '%';
-  hero.style.top = HERO_RECT.top + '%';
-  hero.style.width = HERO_RECT.width + '%';
-  hero.style.transform = 'rotate(' + HERO_RECT.rotate + 'deg)';
-  hero.setAttribute('role', 'button');
-  hero.setAttribute('tabindex', '0');
-  function openHero(){ openLightbox(heroItem); }
-  hero.addEventListener('click', openHero);
-  hero.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openHero(); } });
-  galleryRoom.appendChild(hero);
-  heroItem._vitrineEl = hero;
-
-  Object.keys(PIN_MAP).forEach(function(id){
+  Object.keys(RECTS).forEach(function(id, idx){
     var item = byId[id];
-    var pos = PIN_MAP[id];
-    var pin = document.createElement('div');
-    pin.className = 'pin';
-    pin.style.left = pos.x + '%';
-    pin.style.top = pos.y + '%';
-    pin.setAttribute('role', 'button');
-    pin.setAttribute('tabindex', '0');
-    pin.innerHTML = '<span class="pin-label">' + item.name + '</span>';
+    var rect = RECTS[id];
+    var piece = document.createElement('div');
+    piece.className = 'gallery-hero' + (item.presentation === 'full' ? ' full' : '');
+    piece.innerHTML = '<img src="' + item.img + '" alt="' + item.name + '">';
+    piece.style.left = rect.left + '%';
+    piece.style.top = rect.top + '%';
+    piece.style.width = rect.width + '%';
+    piece.style.transform = 'rotate(' + rect.rotate + 'deg)';
+    piece.style.setProperty('--shimmer-delay', (-idx * 0.7) + 's');
+    piece.setAttribute('role', 'button');
+    piece.setAttribute('tabindex', '0');
     function open(){ openLightbox(item); }
-    pin.addEventListener('click', open);
-    pin.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
-    galleryRoom.appendChild(pin);
-    item._vitrineEl = pin;
+    piece.addEventListener('click', open);
+    piece.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
+    galleryRoom.appendChild(piece);
+    item._vitrineEl = piece;
   });
 
   /* ---------------- lightbox: step up to the case ---------------- */
@@ -694,9 +677,7 @@
     refreshLightboxBuy();
     showToast(currentItem.name + ' joins your collection.');
     var vit = currentItem._vitrineEl;
-    if(vit && vit.classList.contains('pin')){
-      vit.classList.add('owned');
-    } else if(vit && !vit.querySelector('.owned-ribbon')){
+    if(vit && !vit.querySelector('.owned-ribbon')){
       var ribbon = document.createElement('div');
       ribbon.className = 'owned-ribbon';
       ribbon.textContent = 'Acquired';
