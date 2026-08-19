@@ -1,0 +1,9 @@
+.git
+.claude
+.github
+.wrangler
+wrangler.toml
+.assetsignore
+images.zip
+server.log
+node_modules
